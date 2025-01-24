@@ -228,7 +228,7 @@ func (s *SyncAction) findResourcesChangeTime(ctx context.Context, namespaceResou
 		return fmt.Errorf("%s - %w", gitPath, err)
 	}
 
-	groups, commitsMap, err := collectResourcesCommits(repo, s.commitsAfter)
+	groups, commitsMap, err := collectResourcesCommits(repo, s.timeDepth)
 	if err != nil {
 		return fmt.Errorf("collect resources commits > %w", err)
 	}

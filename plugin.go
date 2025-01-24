@@ -46,7 +46,7 @@ func (p *Plugin) DiscoverActions(_ context.Context) ([]*action.Action, error) {
 		dryRun := input.Opt("dry-run").(bool)
 		allowOverride := input.Opt("allow-override").(bool)
 		filterByResourceUsage := input.Opt("playbook-resources").(bool)
-		commitsAfter := input.Opt("commits-after").(string)
+		timeDepth := input.Opt("time-depth").(string)
 		vaultpass := input.Opt("vault-pass").(string)
 		last := input.Opt("last").(bool)
 
@@ -74,7 +74,7 @@ func (p *Plugin) DiscoverActions(_ context.Context) ([]*action.Action, error) {
 
 			dryRun:                dryRun,
 			filterByResourceUsage: filterByResourceUsage,
-			commitsAfter:          commitsAfter,
+			timeDepth:             timeDepth,
 			allowOverride:         allowOverride,
 			vaultPass:             vaultpass,
 			showProgress:          !hideProgress,

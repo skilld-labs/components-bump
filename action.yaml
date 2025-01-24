@@ -29,9 +29,9 @@ action:
       description: Don't draw progress bars (true if log level above 0)
       type: boolean
       default: false
-    - name: commits-after
-      title: Commits after
-      description: Use commits only after specific date
+    - name: time-depth
+      title: Time depth
+      description: Use commits only after specific date (ex. 2006-01-02)
       type: string
       default: ""
     - name: vault-pass

@@ -49,7 +49,7 @@ type SyncAction struct {
 	dryRun                bool
 	allowOverride         bool
 	filterByResourceUsage bool
-	commitsAfter          string
+	timeDepth             string
 	vaultPass             string
 	showProgress          bool
 }
