@@ -30,17 +30,17 @@ var InventoryExcluded = []string{
 	"__pycache__",
 }
 
-// Kinds are list of target resources.
-var Kinds = map[string]string{
-	"application": "applications",
-	"service":     "services",
-	"software":    "softwares",
-	"executor":    "executors",
-	"flow":        "flows",
-	"skill":       "skills",
-	"function":    "functions",
-	"library":     "libraries",
-	"entity":      "entities",
+// Kinds are list of resources kinds which version can be propagated.
+var Kinds = map[string]struct{}{
+	"applications": {},
+	"services":     {},
+	"softwares":    {},
+	"executors":    {},
+	"flows":        {},
+	"skills":       {},
+	"functions":    {},
+	"libraries":    {},
+	"entities":     {},
 }
 
 type resourceDependencies struct {
@@ -61,7 +61,10 @@ type Inventory struct {
 	dependsOn    map[string]*OrderedMap[bool]
 	topOrder     []string
 
-	variablesCalculated            bool
+	resourcesUsageCalculated bool
+	usedResources            map[string]bool
+
+	variablesUsageCalculated       bool
 	variableVariablesDependencyMap map[string]map[string]*VariableDependency
 	variableResourcesDependencyMap map[string]map[string][]string
 
@@ -117,6 +120,7 @@ func (i *Inventory) buildResourcesGraph() error {
 		}
 
 		entity := strings.ToLower(filepath.Base(relPath))
+		dir := filepath.Dir(relPath)
 
 		switch entity {
 		case "plasma.yaml":
@@ -142,6 +146,10 @@ func (i *Inventory) buildResourcesGraph() error {
 			resourceName := resource.GetName()
 			if _, ok := i.resourcesMap.Get(resourceName); !ok {
 				i.resourcesMap.Set(resourceName, resource)
+			}
+
+			if !strings.HasSuffix(dir, "/tasks") {
+				break
 			}
 
 			data, errRead := os.ReadFile(filepath.Clean(path))
@@ -172,6 +180,53 @@ func (i *Inventory) buildResourcesGraph() error {
 
 					i.requiredBy[depName].Set(resourceName, true)
 					i.dependsOn[resourceName].Set(depName, true)
+				}
+			}
+		case "main.yaml":
+			resource := BuildResourceFromPath(relPath, i.sourceDir)
+			if resource == nil || !resource.IsValidResource() {
+				break
+			}
+
+			resourceName := resource.GetName()
+			if _, exists := i.resourcesMap.Get(resourceName); !exists {
+				i.resourcesMap.Set(resourceName, resource)
+			}
+
+			if !strings.HasSuffix(dir, "/tasks") {
+				break
+			}
+
+			data, errRead := os.ReadFile(filepath.Clean(path))
+			if errRead != nil {
+				return errRead
+			}
+
+			var main []map[string]any
+			err = yaml.Unmarshal(data, &main)
+			if err != nil {
+				return fmt.Errorf("%s > %w", path, err)
+			}
+
+			if len(main) == 0 {
+				return nil
+			}
+
+			if i.dependsOn[resourceName] == nil {
+				i.dependsOn[resourceName] = NewOrderedMap[bool]()
+			}
+
+			for _, entry := range main {
+				if r, ok := entry["include_role"].(map[string]any); ok {
+					if n, ok := r["name"].(string); ok && n != "" {
+						depName := strings.ReplaceAll(n, ".", "__")
+						if i.requiredBy[depName] == nil {
+							i.requiredBy[depName] = NewOrderedMap[bool]()
+						}
+
+						i.requiredBy[depName].Set(resourceName, true)
+						i.dependsOn[resourceName].Set(depName, true)
+					}
 				}
 			}
 		}
@@ -274,18 +329,18 @@ func (i *Inventory) lookupDependenciesRecursively(resourceName string, resources
 
 // GetChangedResources returns an OrderedResourceMap containing the resources that have been modified, based on the provided list of modified files.
 // It iterates over the modified files, builds a resource from each file path, and adds it to the result map if it is not already present.
-func (i *Inventory) GetChangedResources(files []string) *OrderedMap[*Resource] {
-	resources := NewOrderedMap[*Resource]()
-	for _, path := range files {
-		resource := BuildResourceFromPath(path, i.sourceDir)
-		if resource == nil {
-			continue
-		}
-		if _, ok := resources.Get(resource.GetName()); ok {
-			continue
-		}
-		resources.Set(resource.GetName(), resource)
-	}
-
-	return resources
-}
+//func (i *Inventory) GetChangedResources(files []string) *OrderedMap[*Resource] {
+//	resources := NewOrderedMap[*Resource]()
+//	for _, path := range files {
+//		resource := BuildResourceFromPath(path, i.sourceDir)
+//		if resource == nil {
+//			continue
+//		}
+//		if _, ok := resources.Get(resource.GetName()); ok {
+//			continue
+//		}
+//		resources.Set(resource.GetName(), resource)
+//	}
+//
+//	return resources
+//}
