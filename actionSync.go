@@ -362,9 +362,18 @@ func (s *SyncAction) buildPropagationMap(buildInv *sync.Inventory, timeline []sy
 
 			var toProcess []string
 			for _, key := range resources.Keys() {
+				// Skip resource if it was processed by previous timeline item or previous resource (via deps).
 				if processed[key] {
 					continue
 				}
+
+				r, _ := resources.Get(key)
+
+				if !sync.IsUpdatableKind(r.GetKind()) {
+					launchr.Log().Warn(fmt.Sprintf("%s is not allowed to propagate", key))
+					continue
+				}
+
 				toProcess = append(toProcess, key)
 			}
 
@@ -401,6 +410,11 @@ func (s *SyncAction) buildPropagationMap(buildInv *sync.Inventory, timeline []sy
 					}
 
 					processed[dep] = true
+
+					if !sync.IsUpdatableKind(r.GetKind()) {
+						launchr.Log().Warn(fmt.Sprintf("%s is not allowed to propagate", dep))
+						continue
+					}
 
 					toPropagate.Set(dep, depResource)
 					resourceVersionMap[dep] = i.GetVersion()
@@ -472,9 +486,12 @@ func (s *SyncAction) buildPropagationMap(buildInv *sync.Inventory, timeline []sy
 				}
 
 				processed[r] = true
-				toPropagate.Set(r, mainResource)
-				resourceVersionMap[r] = i.GetVersion()
-				dependenciesLog.Set(r, true)
+
+				if sync.IsUpdatableKind(mainResource.GetKind()) {
+					toPropagate.Set(r, mainResource)
+					resourceVersionMap[r] = i.GetVersion()
+					dependenciesLog.Set(r, true)
+				}
 
 				// Set versions for dependent resources.
 				dependentResources := buildInv.GetRequiredByResources(r, -1)
@@ -491,6 +508,11 @@ func (s *SyncAction) buildPropagationMap(buildInv *sync.Inventory, timeline []sy
 					}
 
 					processed[dep] = true
+
+					if !sync.IsUpdatableKind(mainResource.GetKind()) {
+						launchr.Log().Warn(fmt.Sprintf("%s is not allowed to propagate", dep))
+						continue
+					}
 
 					toPropagate.Set(dep, depResource)
 					resourceVersionMap[dep] = i.GetVersion()

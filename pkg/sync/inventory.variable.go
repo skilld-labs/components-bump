@@ -508,7 +508,7 @@ func (i *Inventory) buildVariableResourcesDependencies(groupKeys map[string]map[
 			var res []string
 			for _, path := range files {
 				platform, kind, role, err := ProcessResourcePath(path)
-				if err != nil || (platform == "" || kind == "" || role == "") || !IsUpdatableKind(kind) {
+				if err != nil || (platform == "" || kind == "" || role == "") {
 					continue
 				}
 

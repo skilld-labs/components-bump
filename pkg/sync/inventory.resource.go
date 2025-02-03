@@ -37,19 +37,45 @@ func ConvertMRNtoPath(mrn string) (string, error) {
 type Resource struct {
 	name       string
 	pathPrefix string
+	platform   string
+	kind       string
+	role       string
 }
 
 // NewResource returns new [Resource] instance.
-func NewResource(name, prefix string) *Resource {
+func NewResource(mrn, prefix string) *Resource {
+	parts := strings.Split(mrn, "__")
+	if len(parts) != 3 {
+		panic("invalid MRN submitted")
+	}
+
 	return &Resource{
-		name:       name,
+		name:       mrn,
 		pathPrefix: prefix,
+		platform:   parts[0],
+		kind:       parts[1],
+		role:       parts[2],
 	}
 }
 
-// GetName returns a resource name
+// GetName returns a machine resource name.
 func (r *Resource) GetName() string {
 	return r.name
+}
+
+// GetPlatform returns a resource platform.
+func (r *Resource) GetPlatform() string {
+	return r.platform
+}
+
+// GetKind returns a resource kind.
+func (r *Resource) GetKind() string {
+	return r.kind
+}
+
+// GetRole returns a resource name.
+func (r *Resource) GetRole() string {
+	return r.role
 }
 
 // IsValidResource checks if resource has meta file.
@@ -180,7 +206,7 @@ func (r *Resource) UpdateVersion(version string) error {
 // BuildResourceFromPath builds a new instance of Resource from the given path.
 func BuildResourceFromPath(path, pathPrefix string) *Resource {
 	platform, kind, role, err := ProcessResourcePath(path)
-	if err != nil || (platform == "" || kind == "" || role == "") || !IsUpdatableKind(kind) {
+	if err != nil || (platform == "" || kind == "" || role == "") {
 		return nil
 	}
 
@@ -203,17 +229,8 @@ func ProcessResourcePath(path string) (string, string, string, error) {
 
 // IsUpdatableKind checks if resource kind is in [Kinds] range.
 func IsUpdatableKind(kind string) bool {
-	if _, ok := Kinds[kind]; ok {
-		return true
-	}
-
-	for _, value := range Kinds {
-		if value == kind {
-			return true
-		}
-	}
-
-	return false
+	_, ok := Kinds[kind]
+	return ok
 }
 
 // OrderedMap represents generic struct with map and order keys.
