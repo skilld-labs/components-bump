@@ -148,6 +148,10 @@ func (i *Inventory) buildResourcesGraph() error {
 				i.resourcesMap.Set(resourceName, resource)
 			}
 
+			if !strings.HasSuffix(dir, "/tasks") {
+				break
+			}
+
 			data, errRead := os.ReadFile(filepath.Clean(path))
 			if errRead != nil {
 				return errRead
